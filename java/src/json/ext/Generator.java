@@ -18,6 +18,7 @@ import org.jruby.RubyClass;
 import org.jruby.RubyFixnum;
 import org.jruby.RubyFloat;
 import org.jruby.RubyHash;
+import org.jruby.RubyNil;
 import org.jruby.RubyString;
 import org.jruby.RubySymbol;
 import org.jruby.RubyException;
@@ -99,24 +100,21 @@ public final class Generator {
     // the best I could get and ignore the warnings
     @SuppressWarnings("unchecked")
     private static <T extends IRubyObject> Handler<? super T> getHandlerFor(Ruby runtime, T object) {
-        switch (((RubyBasicObject) object).getNativeClassIndex()) {
-            case NIL    : return NIL_HANDLER;
-            case TRUE   : return (Handler<T>) TRUE_HANDLER;
-            case FALSE  : return (Handler<T>) FALSE_HANDLER;
-            case FLOAT  : return (Handler<T>) FLOAT_HANDLER;
-            case FIXNUM : return (Handler<T>) FIXNUM_HANDLER;
-            case BIGNUM : return (Handler<T>) BIGNUM_HANDLER;
-            case STRING :
-                if (Helpers.metaclass(object) != runtime.getString()) break;
-                return (Handler<T>) STRING_HANDLER;
-            case ARRAY  :
-                if (Helpers.metaclass(object) != runtime.getArray()) break;
-                return (Handler<T>) ARRAY_HANDLER;
-            case HASH   :
-                if (Helpers.metaclass(object) != runtime.getHash()) break;
-                return (Handler<T>) HASH_HANDLER;
-        }
-        return GENERIC_HANDLER;
+        return switch (object) {
+            case RubyNil o -> NIL_HANDLER;
+            case RubyBoolean.True o -> (Handler<T>) TRUE_HANDLER;
+            case RubyBoolean.False o -> (Handler<T>) FALSE_HANDLER;
+            case RubyFloat o -> (Handler<T>) FLOAT_HANDLER;
+            case RubyFixnum o -> (Handler<T>) FIXNUM_HANDLER;
+            case RubyBignum o -> (Handler<T>) BIGNUM_HANDLER;
+            case RubyString s ->
+                    (Helpers.metaclass(object) != runtime.getString()) ? GENERIC_HANDLER : (Handler<T>) STRING_HANDLER;
+            case RubyArray a ->
+                    (Helpers.metaclass(object) != runtime.getArray()) ? GENERIC_HANDLER : (Handler<T>) ARRAY_HANDLER;
+            case RubyHash h ->
+                    (Helpers.metaclass(object) != runtime.getHash()) ? GENERIC_HANDLER : (Handler<T>) HASH_HANDLER;
+            default -> GENERIC_HANDLER;
+        };
     }
 
 
